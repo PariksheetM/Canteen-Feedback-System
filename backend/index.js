@@ -1,6 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+// Load environment variables from .env file
+// Example .env:
+// DB_HOST=your-db-host
+// DB_USER=your-db-user
+// DB_PASSWORD=your-db-password
+// DB_NAME=your-db-name
+// ADMIN_PASSWORD=your-admin-password
+// JWT_SECRET=your-jwt-secret
+// FRONTEND_URL=https://your-frontend-url.com
+// BACKEND_URL=https://your-backend-url.com
 import bcrypt from 'bcrypt';
 import mysql from 'mysql2/promise';
 import { generateToken, verifyToken } from './jwt.js';
@@ -10,6 +20,9 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors());
+// Use environment variable for allowed CORS origin
+const allowedOrigin = process.env.FRONTEND_URL || '*';
+app.use(cors({ origin: allowedOrigin }));
 app.use('/sites', sitesRouter);
 
 const dbConfig = {
@@ -26,7 +39,10 @@ async function getConnection() {
 // --- Admin JWT Login ---
 app.post('/admin-login', async (req, res) => {
 	const { password } = req.body;
-	const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+		const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+		if (!ADMIN_PASSWORD) {
+			return res.status(500).json({ error: 'Admin password not set in environment variables' });
+		}
 	if (!password || password !== ADMIN_PASSWORD) {
 		return res.status(401).json({ error: 'Invalid admin password' });
 	}
@@ -347,6 +363,7 @@ app.get('/profile', (req, res) => {
 
 // --- Server Startup ---
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, '0.0.0.0', () => {
+const HOST = process.env.HOST || '0.0.0.0';
+app.listen(PORT, HOST, () => {
 	console.log(`Backend running on port ${PORT}`);
 });
